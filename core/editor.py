@@ -7,6 +7,7 @@ class TerminalEditor:
         self.callbacks = callbacks
         self.current_file = "vault.txt"
         self.mode = "EDIT"
+        self.is_modified = False
         self.file_list = []
         self.selected_idx = 0
         self.custom_font = font.Font(family="Consolas", size=12)
@@ -19,7 +20,7 @@ class TerminalEditor:
         self.text_area.pack(expand=True, fill='both')
         
         self.status_bar = tk.Label(
-            self.root, text=f" MODE: {self.mode} | FILE: {self.current_file} ",
+            self.root, text="",
             bg="#1A1A1A", fg="#888888", font=("Consolas", 9), anchor="w"
         )
         self.status_bar.pack(side="bottom", fill="x")
@@ -31,17 +32,20 @@ class TerminalEditor:
         )
         self.cmd_line.pack(side="bottom", fill="x")
         
-        # 명령어 입력창 전용 바인딩
         self.cmd_line.bind("<Return>", self.execute_command)
-        
-        # [수정] ESC를 root에 바인딩하여 어디서든 먹히게 함
         self.root.bind("<Escape>", self.focus_editor)
         self.root.bind("<F1>", self.focus_command_line)
         self.root.bind("<Up>", self.navigate_browser)
         self.root.bind("<Down>", self.navigate_browser)
-        
-        # 본문 영역 엔터는 브라우저 선택용
         self.text_area.bind("<Return>", self.select_file_in_browser)
+        self.text_area.bind("<KeyPress>", self.on_key_press)
+        
+        self.update_status("READY")
+
+    def on_key_press(self, event=None):
+        if self.mode == "EDIT" and event.keysym not in ["Escape", "F1", "Control_L", "Control_R", "Shift_L", "Shift_R"]:
+            self.is_modified = True
+            self.update_status("EDITING (*)")
 
     def focus_command_line(self, event=None):
         if self.mode in ["BROWSER", "HELP"]: return "break"
@@ -51,16 +55,17 @@ class TerminalEditor:
         return "break"
 
     def focus_editor(self, event=None):
-        # 어떤 모드에서든 ESC를 누르면 편집 모드로 강제 복귀
         if self.mode in ["BROWSER", "HELP"]:
             self.mode = "EDIT"
             content = self.callbacks['load'](self.current_file)
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert("1.0", content)
+            self.is_modified = False
         
         self.cmd_line.delete(0, tk.END)
         self.text_area.focus_set()
-        self.update_status("MODE: EDIT")
+        status_msg = "EDITING (*)" if self.is_modified else "IDLE"
+        self.update_status(status_msg)
         return "break"
 
     def execute_command(self, event=None):
@@ -100,7 +105,8 @@ class TerminalEditor:
         elif cmd == ":w":
             content = self.text_area.get("1.0", tk.END).strip()
             self.callbacks['save'](self.current_file, content)
-            self.update_status(f"SUCCESS: SAVED '{self.current_file}'")
+            self.is_modified = False
+            self.update_status(f"SAVED '{self.current_file}'")
             self.cmd_line.delete(0, tk.END)
             self.text_area.focus_set()
             return "break"
@@ -120,6 +126,8 @@ class TerminalEditor:
             content = self.callbacks['load'](self.current_file)
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert("1.0", content)
+            self.is_modified = False
+            self.update_status(f"OPENED: {self.current_file}")
 
         self.focus_editor()
         return "break"
@@ -176,6 +184,7 @@ class TerminalEditor:
             self.current_file = self.file_list[self.selected_idx]
             content = self.callbacks['load'](self.current_file)
             self.mode = "EDIT"
+            self.is_modified = False
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert("1.0", content)
             self.update_status(f"OPENED: {self.current_file}")
