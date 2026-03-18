@@ -4,7 +4,7 @@ from core import TerminalEditor, CryptoManager
 class TermiNoteApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("TermiNote v1.3")
+        self.root.title("TermiNote v1.4")
         self.root.geometry("900x600")
         self.crypto = CryptoManager()
         
@@ -12,7 +12,8 @@ class TermiNoteApp:
             'save': self.crypto.save_sealed,
             'load': self.crypto.load_unsealed,
             'list': self.crypto.get_file_list,
-            'search': self.crypto.search_files
+            'search': self.crypto.search_files,
+            'delete': self.crypto.delete_file
         }
         
         self.editor = TerminalEditor(self.root, callbacks)

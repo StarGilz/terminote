@@ -26,6 +26,15 @@ class CryptoManager:
             sealed_data = f.read()
             return base64.b64decode(sealed_data).decode('utf-8')
 
+    def delete_file(self, filename):
+        if not filename.endswith(".txt"):
+            filename += ".txt"
+        file_path = os.path.join(self.storage_dir, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False
+
     def get_file_list(self):
         return [f for f in os.listdir(self.storage_dir) if f.endswith(".txt")]
 

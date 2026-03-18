@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import font
+from tkinter import font, messagebox
 
 class TerminalEditor:
     def __init__(self, root, callbacks):
@@ -37,6 +37,7 @@ class TerminalEditor:
         self.root.bind("<F1>", self.focus_command_line)
         self.root.bind("<Up>", self.navigate_browser)
         self.root.bind("<Down>", self.navigate_browser)
+        self.root.bind("<Delete>", self.delete_file_in_browser)
         self.text_area.bind("<Return>", self.select_file_in_browser)
         self.text_area.bind("<KeyPress>", self.on_key_press)
         
@@ -84,6 +85,16 @@ class TerminalEditor:
         elif cmd == ":ls":
             self.cmd_line.delete(0, tk.END)
             self.enter_browser_mode()
+            return "break"
+
+        elif cmd == ":rm" and len(parts) > 1:
+            target = parts[1]
+            if messagebox.askyesno("Delete", f"Delete {target}?"):
+                if self.callbacks['delete'](target):
+                    self.update_status(f"DELETED: {target}")
+                else:
+                    self.update_status(f"FAILED TO DELETE: {target}")
+            self.cmd_line.delete(0, tk.END)
             return "break"
 
         elif cmd == ":grep" and len(parts) > 1:
@@ -141,11 +152,13 @@ class TerminalEditor:
             ":q           - Quit editor\n"
             ":wq          - Save and Quit\n"
             ":ls          - Open File Browser\n"
+            ":rm <name>   - Delete a file\n"
             ":e <name>    - Edit or create a new file\n"
             ":grep <word> - Search for files containing keyword\n"
             ":h           - Show this help menu\n\n"
             "F1           - Focus command line\n"
-            "ESC          - Return to editor / Cancel mode"
+            "ESC          - Return to editor / Cancel mode\n"
+            "DEL (in ls)  - Delete selected file"
         )
         self.text_area.insert(tk.END, help_text)
         self.text_area.focus_set()
@@ -160,12 +173,15 @@ class TerminalEditor:
 
     def draw_browser(self):
         self.text_area.delete("1.0", tk.END)
-        self.text_area.insert(tk.END, "--- BROWSER (Up/Down: Move, Enter: Open, ESC: Exit) ---\n\n")
-        for i, filename in enumerate(self.file_list):
-            if i == self.selected_idx:
-                self.text_area.insert(tk.END, f" > {filename}\n", "highlight")
-            else:
-                self.text_area.insert(tk.END, f"   {filename}\n")
+        self.text_area.insert(tk.END, "--- BROWSER (Up/Down: Move, Enter: Open, DEL: Delete, ESC: Exit) ---\n\n")
+        if not self.file_list:
+            self.text_area.insert(tk.END, "   (No files found)")
+        else:
+            for i, filename in enumerate(self.file_list):
+                if i == self.selected_idx:
+                    self.text_area.insert(tk.END, f" > {filename}\n", "highlight")
+                else:
+                    self.text_area.insert(tk.END, f"   {filename}\n")
         self.text_area.tag_configure("highlight", foreground="black", background="#00FF00")
         self.update_status("MODE: BROWSER")
 
@@ -176,6 +192,17 @@ class TerminalEditor:
         elif event.keysym == "Down":
             self.selected_idx = min(len(self.file_list) - 1, self.selected_idx + 1)
         self.draw_browser()
+        return "break"
+
+    def delete_file_in_browser(self, event):
+        if self.mode != "BROWSER" or not self.file_list: return
+        target = self.file_list[self.selected_idx]
+        if messagebox.askyesno("Delete", f"Confirm deletion of {target}?"):
+            if self.callbacks['delete'](target):
+                self.file_list = self.callbacks['list']()
+                self.selected_idx = min(self.selected_idx, len(self.file_list) - 1) if self.file_list else 0
+                self.draw_browser()
+                self.update_status(f"DELETED: {target}")
         return "break"
 
     def select_file_in_browser(self, event):
