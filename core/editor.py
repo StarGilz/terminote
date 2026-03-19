@@ -12,6 +12,13 @@ class TerminalEditor:
         self.selected_idx = 0
         self.custom_font = font.Font(family="Consolas", size=12)
         
+        # 한글-영어 명령어 매핑 사전 (주요 명령어 위주)
+        self.ko_en_map = {
+            'ㅈ': 'w', 'ㄱ': 'r', 'ㅁ': 'a', 'ㄴ': 's', 'ㅇ': 'd', 'ㅎ': 'h',
+            'ㅋ': 'z', 'ㅌ': 'x', 'ㅊ': 'c', 'ㅍ': 'v', 'ㅠ': 'b', 'ㅜ': 'n', 'ㅡ': 'm',
+            'ㅣ': 'l', 'ㅐ': 'o', 'ㅔ': 'p', 'ㅂ': 'q', 'ㅅ': 't', 'ㅕ': 'u', 'ㅑ': 'i'
+        }
+        
         self.text_area = tk.Text(
             self.root, bg="#0D0D0D", fg="#00FF00", 
             insertbackground="#00FF00", font=self.custom_font,
@@ -42,6 +49,14 @@ class TerminalEditor:
         self.text_area.bind("<KeyPress>", self.on_key_press)
         
         self.update_status("READY")
+
+    def convert_to_en(self, text):
+        if not text.startswith(':') and not text.startswith(';'):
+            return text
+        prefix = text[0]
+        content = text[1:]
+        converted = "".join([self.ko_en_map.get(char, char) for char in content])
+        return ":" + converted
 
     def on_key_press(self, event=None):
         if self.mode == "EDIT" and event.keysym not in ["Escape", "F1", "Control_L", "Control_R", "Shift_L", "Shift_R"]:
@@ -74,7 +89,10 @@ class TerminalEditor:
         if not raw_cmd: 
             self.focus_editor()
             return "break"
-        parts = raw_cmd.split()
+        
+        # 한글 입력을 영문 명령어로 자동 변환
+        processed_cmd = self.convert_to_en(raw_cmd)
+        parts = processed_cmd.split()
         cmd = parts[0]
 
         if cmd == ":h":
@@ -82,7 +100,7 @@ class TerminalEditor:
             self.cmd_line.delete(0, tk.END)
             return "break"
 
-        elif cmd == ":ls":
+        elif cmd == ":ls" or cmd == ":ㅣㄴ":
             self.cmd_line.delete(0, tk.END)
             self.enter_browser_mode()
             return "break"

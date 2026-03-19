@@ -35,6 +35,17 @@ class CryptoManager:
             return True
         return False
 
+    def rename_file(self, old_name, new_name):
+        if not old_name.endswith(".txt"): old_name += ".txt"
+        if not new_name.endswith(".txt"): new_name += ".txt"
+        old_path = os.path.join(self.storage_dir, old_name)
+        new_path = os.path.join(self.storage_dir, new_name)
+        
+        if os.path.exists(old_path) and not os.path.exists(new_path):
+            os.rename(old_path, new_path)
+            return True
+        return False
+
     def get_file_list(self):
         return [f for f in os.listdir(self.storage_dir) if f.endswith(".txt")]
 
