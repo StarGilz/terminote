@@ -30,3 +30,4 @@ Designed for those who love the CLI experience and need a secure space for quick
 2. Run the application:
    ```bash
    python main.py
+   
